@@ -5,7 +5,17 @@
  */
 package com.slendy.updater;
 
+import Files.PropManager;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.apache.commons.io.FileUtils;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.kohsuke.github.GHAsset;
 import org.kohsuke.github.GHRelease;
 import org.kohsuke.github.GHRepository;
@@ -19,33 +29,136 @@ import org.kohsuke.github.RateLimitHandler;
  */
 public class Updater {
     
-    private final GitHub GH;
-    GHRepository Repo;
+    public static class builder{
+        //Obligatorios
+        private PropManager PM;
+        private String repository, login, pass;
+        //Con Defaults
+        private String ver = "Latest";
+        boolean OnGoing = false;
+        
+        public builder(PropManager PM, String repository, String login, String pass){
+            this.PM = PM;
+            this.repository = repository;
+            this.login = login;
+            this.pass = pass;
+        }
+        
+        public builder setVer(String ver){
+            this.ver = ver;
+            return this;
+        }
+        
+        public builder SetOnGoing(){
+            this.OnGoing = true;
+            return this;
+        }
+        
+        public Updater build(){
+            
+            Updater U = new Updater(PM,repository,login,pass);
+            //Defaults
+            U.ver = ver;
+//            U.OnGoing = OnGoing;
+            //Inicializar el Updater
+            U.checkFile();
+            try {
+                U.setGH();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            return U;
+        }
+    }
     
-    public Updater(String credenciales, String repository) throws IOException{
-        GH = GitHubBuilder.fromPropertyFile(credenciales)
+    private GitHub GH;
+    private GHRepository Repo;
+    private final PropManager PM;
+    private final String repository;
+    private final String login;
+    private final String pass;
+    private String ver;
+//    private boolean OnGoing;
+    
+    private Updater(PropManager PM, String repository, String login, String pass){
+        this.PM = PM;
+        this.repository = repository;
+        this.login = login;
+        this.pass = pass;        
+    }
+    
+    private void checkFile(){
+        if (!PM.exists()){
+            PM.SaveProp("version", ver);
+//            PM.SaveProp("Ongoing",OnGoing);
+            PM.SaveProp("login", login);
+            PM.SaveProp("password", pass);
+            PM.SaveProp("updateMode", "0");
+//            PM.SaveProp("name", new File(Updater.class.getProtectionDomain()
+//                    .getCodeSource().getLocation().getPath()).getName());
+        }        
+    }
+    
+    private void setGH() throws IOException{
+        GH = GitHubBuilder.fromPropertyFile(PM.directory())
                 .withRateLimitHandler(RateLimitHandler.FAIL)
                 .build();
         Repo = GH.getRepository(repository);
     }
     
+    public static String currentVersion(Class c){
+        return new File(c.getProtectionDomain()
+                    .getCodeSource().getLocation().getPath()).getName();
+    }
+    
+    public void ShowReleases(boolean all) throws IOException{
+        for (GHRelease R : Repo.listReleases()){
+            if(all && (R.isPrerelease() || R.isDraft())){continue;}
+            System.out.println(R.getName()+" "+R.getTagName());
+            for (GHAsset A : R.getAssets()) {
+                System.out.println("  -> " + A.getName());
+            }
+        }
+    }
+    
     public void ShowReleases() throws IOException{
+        this.ShowReleases(false);
+    }
+    
+    public ArrayList<String> getVersions(boolean all) throws IOException{
+        ArrayList<String> Tags = new ArrayList();
         for (GHRelease R : Repo.listReleases()){
-            System.out.println(R.getName()+" "+R.getTagName());
-            for (GHAsset A : R.getAssets()) {
-                System.out.println("  -> " + A.getName());
-            }
+            if(all && (R.isPrerelease() || R.isDraft())){continue;}
+            Tags.add(R.getTagName());
+        }
+        return Tags;
+    }
+    
+    public ArrayList<String> getVersions() throws IOException{
+        return getVersions(false);
+    }
+    
+    public GHRelease getLatest(boolean  stable) throws IOException{
+        if(!stable){
+            return Repo.getLatestRelease();
+        }else{
+            ArrayList<String> tags = getVersions();
+            return Repo.getReleaseByTagName(tags.get(tags.size()-1)); //revisar si es ultima o primera
         }
     }
     
-    public void ShowFinalReleases() throws IOException{
-        for (GHRelease R : Repo.listReleases()){
-            if(R.isPrerelease() || R.isDraft()){continue;}
-            System.out.println(R.getName()+" "+R.getTagName());
-            for (GHAsset A : R.getAssets()) {
-                System.out.println("  -> " + A.getName());
-            }
-        }
+    public GHRelease getLatest() throws IOException{
+        return getLatest(true);
     }
     
+    public void DownloadAssets(GHRelease R) throws IOException{
+        for (GHAsset A : R.getAssets()) {
+                URL asset = new URL(A.getBrowserDownloadUrl());
+                FileUtils.copyURLToFile(asset, new File(A.getName()));
+            }
+    }
+    
+    public void DownloadUpdate() throws IOException{
+        DownloadAssets(getLatest());
+    }   
 }

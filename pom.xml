@@ -3,14 +3,30 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.Slendy</groupId>
     <artifactId>Updater</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.4.0</version>
     <packaging>jar</packaging>
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
     <dependencies>
         <dependency>
             <groupId>org.kohsuke</groupId>
             <artifactId>github-api</artifactId>
             <version>1.107</version>
         </dependency>
+        <dependency>
+          <groupId>org.apache.maven</groupId>
+          <artifactId>maven-model</artifactId>
+          <version>3.3.9</version>
+        </dependency>
+        <dependency>
+	    <groupId>com.github.Slendy4514</groupId>
+	    <artifactId>MyJavaBasics</artifactId>
+	    <version>1.1.0</version>
+	</dependency>
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
