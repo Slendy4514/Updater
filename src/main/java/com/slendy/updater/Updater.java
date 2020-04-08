@@ -105,9 +105,8 @@ public class Updater {
         Repo = GH.getRepository(repository);
     }
     
-    public static String currentVersion(Class c){
-        return new File(c.getProtectionDomain()
-                    .getCodeSource().getLocation().getPath()).getName();
+    public String currentVersion(){
+        return c.getPackage().getImplementationVersion();
     }
     
     public void ShowReleases(boolean all) throws IOException{
