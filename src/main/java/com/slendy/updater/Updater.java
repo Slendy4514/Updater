@@ -7,15 +7,10 @@ package com.slendy.updater;
 
 import Files.PropManager;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.kohsuke.github.GHAsset;
 import org.kohsuke.github.GHRelease;
 import org.kohsuke.github.GHRepository;
@@ -32,16 +27,18 @@ public class Updater {
     public static class builder{
         //Obligatorios
         private PropManager PM;
+        private Class c;
         private String repository, login, pass;
         //Con Defaults
         private String ver = "Latest";
         boolean OnGoing = false;
         
-        public builder(PropManager PM, String repository, String login, String pass){
+        public builder(PropManager PM, String repository, String login, String pass, Class c){
             this.PM = PM;
             this.repository = repository;
             this.login = login;
             this.pass = pass;
+            this.c = c;
         }
         
         public builder setVer(String ver){
@@ -56,7 +53,7 @@ public class Updater {
         
         public Updater build(){
             
-            Updater U = new Updater(PM,repository,login,pass);
+            Updater U = new Updater(PM,repository,login,pass,c);
             //Defaults
             U.ver = ver;
 //            U.OnGoing = OnGoing;
@@ -73,6 +70,7 @@ public class Updater {
     
     private GitHub GH;
     private GHRepository Repo;
+    private final Class c;
     private final PropManager PM;
     private final String repository;
     private final String login;
@@ -80,11 +78,12 @@ public class Updater {
     private String ver;
 //    private boolean OnGoing;
     
-    private Updater(PropManager PM, String repository, String login, String pass){
+    private Updater(PropManager PM, String repository, String login, String pass, Class c){
         this.PM = PM;
         this.repository = repository;
         this.login = login;
-        this.pass = pass;        
+        this.pass = pass;  
+        this.c = c;
     }
     
     private void checkFile(){
@@ -94,8 +93,8 @@ public class Updater {
             PM.SaveProp("login", login);
             PM.SaveProp("password", pass);
             PM.SaveProp("updateMode", "0");
-//            PM.SaveProp("name", new File(Updater.class.getProtectionDomain()
-//                    .getCodeSource().getLocation().getPath()).getName());
+            PM.SaveProp("name", new File(c.getProtectionDomain()
+                    .getCodeSource().getLocation().getPath()).getName());
         }        
     }
     
@@ -106,10 +105,10 @@ public class Updater {
         Repo = GH.getRepository(repository);
     }
     
-    public static String currentVersion(Class c){
-        return new File(c.getProtectionDomain()
-                    .getCodeSource().getLocation().getPath()).getName();
-    }
+//    public static String currentVersion(Class c){
+//        return new File(c.getProtectionDomain()
+//                    .getCodeSource().getLocation().getPath()).getName();
+//    }
     
     public void ShowReleases(boolean all) throws IOException{
         for (GHRelease R : Repo.listReleases()){
@@ -160,5 +159,13 @@ public class Updater {
     
     public void DownloadUpdate() throws IOException{
         DownloadAssets(getLatest());
-    }   
+    }
+    
+    public boolean checkForUpdate(){
+        return true;
+    }
+    
+    public boolean Updating(){
+        return !"0".equals(PM.ReadProp("updateMode"));
+    }
 }
