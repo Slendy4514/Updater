@@ -105,10 +105,10 @@ public class Updater {
         Repo = GH.getRepository(repository);
     }
     
-//    public static String currentVersion(Class c){
-//        return new File(c.getProtectionDomain()
-//                    .getCodeSource().getLocation().getPath()).getName();
-//    }
+    public static String currentVersion(Class c){
+        return new File(c.getProtectionDomain()
+                    .getCodeSource().getLocation().getPath()).getName();
+    }
     
     public void ShowReleases(boolean all) throws IOException{
         for (GHRelease R : Repo.listReleases()){
@@ -166,6 +166,6 @@ public class Updater {
     }
     
     public boolean Updating(){
-        return !"0".equals(PM.ReadProp("updateMode"));
+        return !"N".equals(PM.ReadProp("updateMode"));
     }
 }
