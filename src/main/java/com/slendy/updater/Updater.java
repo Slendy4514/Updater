@@ -145,11 +145,11 @@ public class Updater {
     }
     
     public boolean existsUpdate() throws IOException{
-        return Repo.getLatestRelease().getTagName().equals(this.CurrVer);
+        return !Repo.getLatestRelease().getTagName().equals(this.CurrVer);
     }
     
     public boolean existsUpdateFor(String AltVer) throws IOException{
-        return Repo.getReleaseByTagName(AltVer).getTagName().equals(this.CurrVer);
+        return !Repo.getLatestRelease().getTagName().equals(AltVer);
     }
     
     public boolean Updating(){
