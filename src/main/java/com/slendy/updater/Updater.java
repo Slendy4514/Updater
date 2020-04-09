@@ -26,9 +26,9 @@ public class Updater {
     
     public static class builder{
         //Obligatorios
-        private PropManager PM;
-        private Class c;
-        private String repository, login, pass;
+        private final PropManager PM;
+        private final Class c;
+        private final String repository, login, pass;
         //Con Defaults
         private String ver = "Latest";
         boolean OnGoing = false;
@@ -72,9 +72,7 @@ public class Updater {
     private GHRepository Repo;
     private final Class c;
     private final PropManager PM;
-    private final String repository;
-    private final String login;
-    private final String pass;
+    private final String repository, login, pass, CurrVer;
     private String ver;
 //    private boolean OnGoing;
     
@@ -84,6 +82,7 @@ public class Updater {
         this.login = login;
         this.pass = pass;  
         this.c = c;
+        CurrVer = c.getPackage().getImplementationVersion();
     }
     
     private void checkFile(){
@@ -92,9 +91,8 @@ public class Updater {
 //            PM.SaveProp("Ongoing",OnGoing);
             PM.SaveProp("login", login);
             PM.SaveProp("password", pass);
-            PM.SaveProp("updateMode", "0");
-            PM.SaveProp("name", new File(c.getProtectionDomain()
-                    .getCodeSource().getLocation().getPath()).getName());
+            PM.SaveProp("updateMode", "N");
+            PM.SaveProp("name",currentName());
         }        
     }
     
@@ -106,12 +104,16 @@ public class Updater {
     }
     
     public String currentVersion(){
-        return c.getPackage().getImplementationVersion();
+        return CurrVer;
     }
     
-    public void ShowReleases(boolean all) throws IOException{
+    public String currentName(){
+        return new File(c.getProtectionDomain()
+                    .getCodeSource().getLocation().getPath()).getName();
+    }
+    
+    public void ShowReleases() throws IOException{
         for (GHRelease R : Repo.listReleases()){
-            if(all && (R.isPrerelease() || R.isDraft())){continue;}
             System.out.println(R.getName()+" "+R.getTagName());
             for (GHAsset A : R.getAssets()) {
                 System.out.println("  -> " + A.getName());
@@ -119,49 +121,35 @@ public class Updater {
         }
     }
     
-    public void ShowReleases() throws IOException{
-        this.ShowReleases(false);
-    }
-    
-    public ArrayList<String> getVersions(boolean all) throws IOException{
+    public ArrayList<String> getVersions() throws IOException{
         ArrayList<String> Tags = new ArrayList();
         for (GHRelease R : Repo.listReleases()){
-            if(all && (R.isPrerelease() || R.isDraft())){continue;}
             Tags.add(R.getTagName());
         }
         return Tags;
     }
     
-    public ArrayList<String> getVersions() throws IOException{
-        return getVersions(false);
-    }
-    
-    public GHRelease getLatest(boolean  stable) throws IOException{
-        if(!stable){
-            return Repo.getLatestRelease();
-        }else{
-            ArrayList<String> tags = getVersions();
-            return Repo.getReleaseByTagName(tags.get(tags.size()-1)); //revisar si es ultima o primera
-        }
-    }
-    
-    public GHRelease getLatest() throws IOException{
-        return getLatest(true);
+    public String getLatest() throws IOException{
+        return Repo.getLatestRelease().getTagName();
     }
     
     public void DownloadAssets(GHRelease R) throws IOException{
         for (GHAsset A : R.getAssets()) {
                 URL asset = new URL(A.getBrowserDownloadUrl());
-                FileUtils.copyURLToFile(asset, new File(A.getName()));
+                FileUtils.copyURLToFile(asset, new File("New_"+currentName()));
             }
     }
     
     public void DownloadUpdate() throws IOException{
-        DownloadAssets(getLatest());
+        DownloadAssets(Repo.getLatestRelease());
     }
     
-    public boolean checkForUpdate(){
-        return true;
+    public boolean existsUpdate() throws IOException{
+        return Repo.getLatestRelease().getTagName().equals(this.CurrVer);
+    }
+    
+    public boolean existsUpdateFor(String AltVer) throws IOException{
+        return Repo.getReleaseByTagName(AltVer).getTagName().equals(this.CurrVer);
     }
     
     public boolean Updating(){
