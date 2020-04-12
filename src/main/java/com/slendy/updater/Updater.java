@@ -5,6 +5,7 @@
  */
 package com.slendy.updater;
 
+import static Basics.BThreads.Sleep;
 import Files.PropManager;
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +24,21 @@ import org.kohsuke.github.RateLimitHandler;
  * @author Matías
  */
 public class Updater {
+    
+    private enum Data{
+        UpMode("updateMode"),C_Login("login"),C_Pass("password"),UpVer("version"),ProgName("name");
+        
+        String text;
+        
+        private Data(String text){
+            this.text = text;
+        }
+        
+        @Override
+        public String toString(){
+            return text;
+        }
+    }
     
     public static class builder{
         //Obligatorios
@@ -59,11 +75,7 @@ public class Updater {
 //            U.OnGoing = OnGoing;
             //Inicializar el Updater
             U.checkFile();
-            try {
-                U.setGH();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
+            U.setGH();
             return U;
         }
     }
@@ -87,20 +99,24 @@ public class Updater {
     
     private void checkFile(){
         if (!PM.exists()){
-            PM.SaveProp("version", ver);
+            PM.SaveProp(Data.UpVer+"", ver);
 //            PM.SaveProp("Ongoing",OnGoing);
-            PM.SaveProp("login", login);
-            PM.SaveProp("password", pass);
-            PM.SaveProp("updateMode", "N");
-            PM.SaveProp("name",currentName());
-        }        
+            PM.SaveProp(Data.C_Login+"", login);
+            PM.SaveProp(Data.C_Pass+"", pass);
+            PM.SaveProp(Data.UpMode+"", "N");
+        }
+        PM.SaveProp(Data.ProgName+"",currentName());        
     }
     
-    private void setGH() throws IOException{
-        GH = GitHubBuilder.fromPropertyFile(PM.directory())
-                .withRateLimitHandler(RateLimitHandler.FAIL)
-                .build();
-        Repo = GH.getRepository(repository);
+    private void setGH(){
+        try{
+            GH = GitHubBuilder.fromPropertyFile(PM.directory())
+                    .withRateLimitHandler(RateLimitHandler.FAIL)
+                    .build();
+            Repo = GH.getRepository(repository);            
+        }catch(IOException e){
+            e.printStackTrace();
+        }
     }
     
     public String currentVersion(){
@@ -112,47 +128,163 @@ public class Updater {
                     .getCodeSource().getLocation().getPath()).getName();
     }
     
-    public void ShowReleases() throws IOException{
-        for (GHRelease R : Repo.listReleases()){
-            System.out.println(R.getName()+" "+R.getTagName());
-            for (GHAsset A : R.getAssets()) {
-                System.out.println("  -> " + A.getName());
+    public void ShowReleases(){
+        try{
+            for (GHRelease R : Repo.listReleases()){
+                System.out.println(R.getName()+" "+R.getTagName());
+                for (GHAsset A : R.getAssets()) {
+                    System.out.println("  -> " + A.getName());
+                }
             }
+        }catch(IOException e){
+            e.printStackTrace();
         }
     }
     
-    public ArrayList<String> getVersions() throws IOException{
+    public ArrayList<String> getVersions(){
         ArrayList<String> Tags = new ArrayList();
-        for (GHRelease R : Repo.listReleases()){
-            Tags.add(R.getTagName());
+        try{
+            for (GHRelease R : Repo.listReleases()){
+                Tags.add(R.getTagName());
+            }
+        }catch(IOException e){
+            e.printStackTrace();
         }
         return Tags;
     }
     
-    public String getLatest() throws IOException{
-        return Repo.getLatestRelease().getTagName();
+    public String getLatest(){
+        try{
+            return Repo.getLatestRelease().getTagName();
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        return null;
     }
     
-    public void DownloadAssets(GHRelease R) throws IOException{
-        for (GHAsset A : R.getAssets()) {
+    public void DownloadAssets(GHRelease R){
+        try{
+            for (GHAsset A : R.getAssets()) {
                 URL asset = new URL(A.getBrowserDownloadUrl());
-                FileUtils.copyURLToFile(asset, new File("New_"+currentName()));
+                if(A.getName().endsWith(".jar")){
+                    FileUtils.copyURLToFile(asset, new File("New_"+currentName())); 
+                }else{
+                    FileUtils.copyURLToFile(asset, new File(A.getName()));
+                    
+                }
             }
+        }catch(IOException e){
+            e.printStackTrace();
+        }
     }
     
-    public void DownloadUpdate() throws IOException{
-        DownloadAssets(Repo.getLatestRelease());
+    public void DownloadAssets(String Version){
+        try {
+            DownloadAssets(Repo.getReleaseByTagName(Version));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
     }
     
-    public boolean existsUpdate() throws IOException{
-        return !Repo.getLatestRelease().getTagName().equals(this.CurrVer);
+    public void DownloadUpdate(){
+        try {
+            DownloadAssets(Repo.getLatestRelease());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
     }
     
-    public boolean existsUpdateFor(String AltVer) throws IOException{
-        return !Repo.getLatestRelease().getTagName().equals(AltVer);
+    public boolean existsUpdate(){
+        try{
+            return !Repo.getLatestRelease().getTagName().equals(this.CurrVer);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    public boolean existsUpdateFor(String AltVer){
+        try{
+            return !Repo.getLatestRelease().getTagName().equals(AltVer);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        return false;
     }
     
     public boolean Updating(){
-        return !"N".equals(PM.ReadProp("updateMode"));
+        return !"N".equals(PM.ReadProp(Data.UpMode+""));
     }
+    
+    private void BeginUpdate(){
+        try{
+            this.DownloadAssets(Repo.getLatestRelease());
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        PM.SaveProp(Data.UpMode+"", "RN(w)");
+        //Activar programa new
+        PM.SaveProp(Data.UpMode+"", "RN");
+        System.exit(0);
+    }
+    
+    private void Rename(){
+        while(PM.ReadProp(Data.UpMode+"").contains("w")){
+            Sleep(1000);
+        }
+        String name = PM.ReadProp(Data.ProgName+"");
+        File old = new File(name);
+        //Hora de las pendejadas
+        String razita = "razita";
+        for (int i = 1; i < 7; i++){
+            old.renameTo(new File(razita+".jar"));
+            razita = razita+"a";
+            Sleep(500);
+        }
+        Sleep(5000);
+        //Fin de las pendejadas... borrar luego XD
+        old.renameTo(new File("Old_"+name));
+        PM.SaveProp(Data.UpMode+"", "R2(w)");
+        //Activar programa old
+        PM.SaveProp(Data.UpMode+"", "R2");
+        System.exit(0);
+    }
+    
+    private void Rename2(){
+        while(PM.ReadProp(Data.UpMode+"").contains("w")){
+            Sleep(1000);
+        }
+        String name = PM.ReadProp(Data.ProgName+"");
+        File updated = new File("New_"+name);
+        updated.renameTo(new File(name));
+        PM.SaveProp(Data.UpMode+"", "Er(w)");
+        //Activar programa new
+        PM.SaveProp(Data.UpMode+"", "Er");
+        System.exit(0);
+        
+    }
+    
+    private void Erase(){
+        File old = new File("Old_"+Data.ProgName+"");
+        old.delete();
+        PM.SaveProp(Data.UpMode+"", "N");
+    }
+    
+    public void Update(){
+        switch(PM.ReadProp(Data.UpMode+"")){
+            case "N":
+                BeginUpdate();
+                break;
+            case "RN(w)":
+                Rename();
+                break;
+            case "R2(w)":
+                Rename2();
+                break;
+            case "Er(w)":
+                Erase();
+                break;
+        }
+    }
+    
 }
