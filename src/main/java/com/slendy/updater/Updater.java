@@ -7,6 +7,7 @@ package com.slendy.updater;
 
 import static Basics.BThreads.Sleep;
 import Files.PropManager;
+import Files.ZipActions;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -26,7 +27,7 @@ import org.kohsuke.github.RateLimitHandler;
 public class Updater {
     
     private enum Data{
-        UpMode("updateMode"),C_Login("login"),C_Pass("password"),UpVer("version"),ProgName("name");
+        UpdateMode("updateMode"),Login("login"),Pass("password"),Version("version"),Name("name");
         
         String text;
         
@@ -99,13 +100,13 @@ public class Updater {
     
     private void checkFile(){
         if (!PM.exists()){
-            PM.SaveProp(Data.UpVer+"", ver);
+            PM.SaveProp(Data.Version+"", ver);
 //            PM.SaveProp("Ongoing",OnGoing);
-            PM.SaveProp(Data.C_Login+"", login);
-            PM.SaveProp(Data.C_Pass+"", pass);
-            PM.SaveProp(Data.UpMode+"", "N");
+            PM.SaveProp(Data.Login+"", login);
+            PM.SaveProp(Data.Pass+"", pass);
+            PM.SaveProp(Data.UpdateMode+"", "N");
         }
-        PM.SaveProp(Data.ProgName+"",currentName());        
+        PM.SaveProp(Data.Name+"",currentName());        
     }
     
     private void setGH(){
@@ -162,15 +163,16 @@ public class Updater {
         return null;
     }
     
-    public void DownloadAssets(GHRelease R){
+    private void DownloadAssets(GHRelease R){
         try{
             for (GHAsset A : R.getAssets()) {
                 URL asset = new URL(A.getBrowserDownloadUrl());
                 if(A.getName().endsWith(".jar")){
                     FileUtils.copyURLToFile(asset, new File("New_"+currentName())); 
                 }else{
-                    FileUtils.copyURLToFile(asset, new File(A.getName()));
-                    
+                    File Lib = new File(A.getName());
+                    FileUtils.copyURLToFile(asset,Lib);
+                    ZipActions.unZipFile(Lib);
                 }
             }
         }catch(IOException e){
@@ -213,7 +215,7 @@ public class Updater {
     }
     
     public boolean Updating(){
-        return !"N".equals(PM.ReadProp(Data.UpMode+""));
+        return !"N".equals(PM.ReadProp(Data.UpdateMode+""));
     }
     
     private void BeginUpdate(){
@@ -222,17 +224,17 @@ public class Updater {
         }catch(IOException e){
             e.printStackTrace();
         }
-        PM.SaveProp(Data.UpMode+"", "RN(w)");
+        PM.SaveProp(Data.UpdateMode+"", "RN(w)");
         //Activar programa new
-        PM.SaveProp(Data.UpMode+"", "RN");
+        PM.SaveProp(Data.UpdateMode+"", "RN");
         System.exit(0);
     }
     
     private void Rename(){
-        while(PM.ReadProp(Data.UpMode+"").contains("w")){
+        while(PM.ReadProp(Data.UpdateMode+"").contains("w")){
             Sleep(1000);
         }
-        String name = PM.ReadProp(Data.ProgName+"");
+        String name = PM.ReadProp(Data.Name+"");
         File old = new File(name);
         //Hora de las pendejadas
         String razita = "razita";
@@ -244,34 +246,34 @@ public class Updater {
         Sleep(5000);
         //Fin de las pendejadas... borrar luego XD
         old.renameTo(new File("Old_"+name));
-        PM.SaveProp(Data.UpMode+"", "R2(w)");
+        PM.SaveProp(Data.UpdateMode+"", "R2(w)");
         //Activar programa old
-        PM.SaveProp(Data.UpMode+"", "R2");
+        PM.SaveProp(Data.UpdateMode+"", "R2");
         System.exit(0);
     }
     
     private void Rename2(){
-        while(PM.ReadProp(Data.UpMode+"").contains("w")){
+        while(PM.ReadProp(Data.UpdateMode+"").contains("w")){
             Sleep(1000);
         }
-        String name = PM.ReadProp(Data.ProgName+"");
+        String name = PM.ReadProp(Data.Name+"");
         File updated = new File("New_"+name);
         updated.renameTo(new File(name));
-        PM.SaveProp(Data.UpMode+"", "Er(w)");
+        PM.SaveProp(Data.UpdateMode+"", "C(w)");
         //Activar programa new
-        PM.SaveProp(Data.UpMode+"", "Er");
+        PM.SaveProp(Data.UpdateMode+"", "C");
         System.exit(0);
         
     }
     
-    private void Erase(){
-        File old = new File("Old_"+Data.ProgName+"");
+    private void Clear(){
+        File old = new File("Old_"+Data.Name+"");
         old.delete();
-        PM.SaveProp(Data.UpMode+"", "N");
+        PM.SaveProp(Data.UpdateMode+"", "N");
     }
     
     public void Update(){
-        switch(PM.ReadProp(Data.UpMode+"")){
+        switch(PM.ReadProp(Data.UpdateMode+"")){
             case "N":
                 BeginUpdate();
                 break;
@@ -281,8 +283,8 @@ public class Updater {
             case "R2(w)":
                 Rename2();
                 break;
-            case "Er(w)":
-                Erase();
+            case "C(w)":
+                Clear();
                 break;
         }
     }
