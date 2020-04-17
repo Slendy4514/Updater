@@ -205,6 +205,10 @@ public class Updater {
         return false;
     }
     
+//    public boolean existsUpdate() throws IOException,{
+//        return !Repo.getLatestRelease().getTagName().equals(this.CurrVer);
+//    }
+    
     public boolean existsUpdateFor(String AltVer){
         try{
             return !Repo.getLatestRelease().getTagName().equals(AltVer);
