@@ -222,7 +222,7 @@ public class Updater {
         return !"N".equals(PM.ReadProp(Data.UpdateMode+""));
     }
     
-    private void BeginUpdate(){
+    private void BeginUpdate() throws IOException{
         try{
             this.DownloadAssets(Repo.getLatestRelease());
         }catch(IOException e){
@@ -230,11 +230,13 @@ public class Updater {
         }
         PM.SaveProp(Data.UpdateMode+"", "RN(w)");
         //Activar programa new
+        ProcessBuilder NewProg = new ProcessBuilder("New_"+currentName());
+        NewProg.start();
         PM.SaveProp(Data.UpdateMode+"", "RN");
         System.exit(0);
     }
     
-    private void Rename(){
+    private void Rename() throws IOException{
         while(PM.ReadProp(Data.UpdateMode+"").contains("w")){
             Sleep(1000);
         }
@@ -252,11 +254,13 @@ public class Updater {
         old.renameTo(new File("Old_"+name));
         PM.SaveProp(Data.UpdateMode+"", "R2(w)");
         //Activar programa old
+        ProcessBuilder NewProg = new ProcessBuilder("Old_"+name);
+        NewProg.start();
         PM.SaveProp(Data.UpdateMode+"", "R2");
         System.exit(0);
     }
     
-    private void Rename2(){
+    private void Rename2() throws IOException, IOException{
         while(PM.ReadProp(Data.UpdateMode+"").contains("w")){
             Sleep(1000);
         }
@@ -265,6 +269,8 @@ public class Updater {
         updated.renameTo(new File(name));
         PM.SaveProp(Data.UpdateMode+"", "C(w)");
         //Activar programa new
+        ProcessBuilder NewProg = new ProcessBuilder(name);
+        NewProg.start();
         PM.SaveProp(Data.UpdateMode+"", "C");
         System.exit(0);
         
@@ -276,7 +282,7 @@ public class Updater {
         PM.SaveProp(Data.UpdateMode+"", "N");
     }
     
-    public void Update(){
+    public void Update() throws IOException{
         switch(PM.ReadProp(Data.UpdateMode+"")){
             case "N":
                 BeginUpdate();
