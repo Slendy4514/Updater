@@ -101,7 +101,6 @@ public class Updater {
     private void checkFile(){
         if (!PM.exists()){
             PM.SaveProp(Data.Version+"", ver);
-//            PM.SaveProp("Ongoing",OnGoing);
             PM.SaveProp(Data.Login+"", login);
             PM.SaveProp(Data.Pass+"", pass);
             PM.SaveProp(Data.UpdateMode+"", "N");
@@ -236,7 +235,7 @@ public class Updater {
         System.exit(0);
     }
     
-    private void Rename() throws IOException{
+    private void Rename() throws IOException, IOException{
         while(PM.ReadProp(Data.UpdateMode+"").contains("w")){
             Sleep(1000);
         }
