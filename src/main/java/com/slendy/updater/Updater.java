@@ -128,16 +128,12 @@ public class Updater {
                     .getCodeSource().getLocation().getPath()).getName();
     }
     
-    public void ShowReleases(){
-        try{
-            for (GHRelease R : Repo.listReleases()){
-                System.out.println(R.getName()+" "+R.getTagName());
-                for (GHAsset A : R.getAssets()) {
-                    System.out.println("  -> " + A.getName());
-                }
+    public void ShowReleases() throws IOException{
+        for (GHRelease R : Repo.listReleases()){
+            System.out.println(R.getName()+" "+R.getTagName());
+            for (GHAsset A : R.getAssets()) {
+                System.out.println("  -> " + A.getName());
             }
-        }catch(IOException e){
-            e.printStackTrace();
         }
     }
     
@@ -162,20 +158,16 @@ public class Updater {
         return null;
     }
     
-    private void DownloadAssets(GHRelease R){
-        try{
-            for (GHAsset A : R.getAssets()) {
-                URL asset = new URL(A.getBrowserDownloadUrl());
-                if(A.getName().endsWith(".jar")){
-                    FileUtils.copyURLToFile(asset, new File("New_"+currentName())); 
-                }else{
-                    File Lib = new File(A.getName());
-                    FileUtils.copyURLToFile(asset,Lib);
-                    ZipActions.unZipFile(Lib);
-                }
+    private void DownloadAssets(GHRelease R) throws IOException{
+        for (GHAsset A : R.getAssets()) {
+            URL asset = new URL(A.getBrowserDownloadUrl());
+            if(A.getName().endsWith(".jar")){
+                FileUtils.copyURLToFile(asset, new File("New_"+currentName())); 
+            }else{
+                File Lib = new File(A.getName());
+                FileUtils.copyURLToFile(asset,Lib);
+                ZipActions.unZipFile(Lib);
             }
-        }catch(IOException e){
-            e.printStackTrace();
         }
     }
     
@@ -222,11 +214,7 @@ public class Updater {
     }
     
     private void BeginUpdate() throws IOException{
-        try{
-            this.DownloadAssets(Repo.getLatestRelease());
-        }catch(IOException e){
-            e.printStackTrace();
-        }
+        this.DownloadAssets(Repo.getLatestRelease());
         PM.SaveProp(Data.UpdateMode+"", "RN(w)");
         //Activar programa new
         ProcessBuilder NewProg = new ProcessBuilder("New_"+currentName());
