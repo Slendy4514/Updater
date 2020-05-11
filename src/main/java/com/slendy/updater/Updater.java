@@ -217,10 +217,15 @@ public class Updater {
         this.DownloadAssets(Repo.getLatestRelease());
         PM.SaveProp(Data.UpdateMode+"", "RN(w)");
         //Activar programa new
-        ProcessBuilder NewProg = new ProcessBuilder("New_"+currentName());
-        NewProg.start();
-        PM.SaveProp(Data.UpdateMode+"", "RN");
-        System.exit(0);
+        try{
+            ProcessBuilder NewProg = new ProcessBuilder("New_"+currentName());
+            NewProg.start();
+            PM.SaveProp(Data.UpdateMode+"", "RN");
+            System.exit(0);
+        }catch(IOException e){
+            PM.SaveProp(Data.UpdateMode+"", "N");
+            throw e;
+        }
     }
     
     private void Rename() throws IOException, IOException{
